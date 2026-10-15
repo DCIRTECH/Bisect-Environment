@@ -85,7 +85,6 @@ while true; do
   # Still gray. If this one breaks it on its own, there's a second culprit.
   if video_shows "$culprit"; then
     printf '\n%s is involved, but only breaks it together with another variable.\n' "$culprit"
-    echo "Send this output to Claude."
     exit 2
   fi
   suspects=("${keep[@]}")
