@@ -1,4 +1,6 @@
-On Plasma, try env -u KDE_FULL_SESSION -u XDG_CURRENT_DESKTOP kdenlive first. That was the cause for me.
+On Plasma, try ```env -u KDE_FULL_SESSION -u XDG_CURRENT_DESKTOP kdenlive``` first. That was the cause for me.
+
+
 This script is for bisecting your environment to find the variables that create the grey-screen bug. (assumes your audio DOES work)
 
 Step 0: run ```env -i HOME="$HOME" PATH=/usr/bin:/bin XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" WAYLAND_DISPLAY="$WAYLAND_DISPLAY" DISPLAY="$DISPLAY" DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" kdenlive```
