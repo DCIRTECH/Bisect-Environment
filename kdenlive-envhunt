@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# kdenlive-envhunt: find which environment variable breaks Kdenlive's video preview.
+#
+# Usage: kdenlive-envhunt /path/to/test.kdenlive
+#
+# Opens that project in Kdenlive over and over, each time with only part of
+# your environment. Each round: look at the monitor, close Kdenlive, then
+# answer y if the video showed or n if it was gray. Takes about 8 rounds.
+#
+# Close every Kdenlive window before starting. If Kdenlive asks to save when
+# you close it, choose Discard.
+
+set -u
+
+project="${1:-}"
+if [ ! -f "$project" ]; then
+  echo "usage: kdenlive-envhunt /path/to/test.kdenlive" >&2
+  exit 1
+fi
+kdenlive_bin="$(command -v kdenlive)" || { echo "kdenlive not found" >&2; exit 1; }
+
+# The stripped-down environment that already showed video.
+base=(
+  "HOME=$HOME"
+  "PATH=/usr/bin:/bin"
+  "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}"
+  "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}"
+  "DISPLAY=${DISPLAY:-}"
+  "DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-}"
+)
+
+# Every other exported variable is a suspect, your own PATH included
+# (when it's in a round, it replaces the minimal one above).
+mapfile -t everything < <(compgen -e | grep -vxE \
+  'HOME|XDG_RUNTIME_DIR|WAYLAND_DISPLAY|DISPLAY|DBUS_SESSION_BUS_ADDRESS|_|PWD|OLDPWD|SHLVL' | sort)
+
+round=0
+
+# Opens Kdenlive with the base plus the named variables.
+# Succeeds if you say the video showed.
+video_shows() {
+  local args=("${base[@]}") name answer
+  for name in "$@"; do args+=("$name=${!name}"); done
+  round=$((round + 1))
+  printf '\nRound %d: opening Kdenlive with %d of your %d variables. Check the monitor, then close it.\n' \
+    "$round" "$#" "${#everything[@]}"
+  env -i "${args[@]}" "$kdenlive_bin" "$project" >/dev/null 2>&1
+  while true; do
+    read -rp "Did the video show? [y/n] " answer </dev/tty
+    case "$answer" in
+      [yY]*) return 0 ;;
+      [nN]*) return 1 ;;
+    esac
+  done
+}
+
+found=()
+suspects=("${everything[@]}")
+
+while true; do
+  # Halve the suspects until one is left.
+  cand=("${suspects[@]}")
+  while [ "${#cand[@]}" -gt 1 ]; do
+    half=$(( ${#cand[@]} / 2 ))
+    if video_shows "${cand[@]:0:half}"; then
+      cand=("${cand[@]:half}")
+    else
+      cand=("${cand[@]:0:half}")
+    fi
+  done
+  culprit="${cand[0]}"
+  found+=("$culprit")
+
+  # Confirm: your full environment minus everything found so far.
+  keep=()
+  for name in "${everything[@]}"; do
+    hit=0
+    for f in "${found[@]}"; do [ "$name" = "$f" ] && hit=1; done
+    [ "$hit" = 0 ] && keep+=("$name")
+  done
+  if video_shows "${keep[@]}"; then
+    break
+  fi
+
+  # Still gray. If this one breaks it on its own, there's a second culprit.
+  if video_shows "$culprit"; then
+    printf '\n%s is involved, but only breaks it together with another variable.\n' "$culprit"
+    echo "Send this output to Claude."
+    exit 2
+  fi
+  suspects=("${keep[@]}")
+done
+
+echo
+echo "Found it. With these removed, the video shows:"
+for name in "${found[@]}"; do
+  printf '  %s=%s\n' "$name" "${!name}"
+done
