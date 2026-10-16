@@ -22,4 +22,4 @@ Step 6: Indicate with a y/n in the terminal if the video showed.
 Step 7: Repeat till script displays Environment Variables that are conflicting with normal use.
 
 
-Once you have your culprit(s) you can now launch Kdenlive using ```env -u KDE_FULL_SESSION -u XDG_CURRENT_DESKTOP kdenlive``` replace (KDE_FULL_SESSION) and (XDG_CURRENT_DESKTOP) with your results. If you have more than two, simply add another -u (PARAMETER, if you have less, delete one of the -u's and following parameter.
+Once you have your culprit(s) you can now launch Kdenlive using ```env -u KDE_FULL_SESSION -u XDG_CURRENT_DESKTOP kdenlive``` replace (KDE_FULL_SESSION) and (XDG_CURRENT_DESKTOP) with your results. If you have more than two, simply add another -u (PARAMETER) if you have less, delete one of the -u's and following parameter.
